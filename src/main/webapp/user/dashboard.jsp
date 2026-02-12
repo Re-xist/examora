@@ -1,0 +1,178 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="com.examora.model.User" %>
+<%@ page import="com.examora.model.Quiz" %>
+<%@ page import="com.examora.model.Submission" %>
+<%@ page import="java.util.List" %>
+<%@ page import="java.util.Map" %>
+<%
+    User currentUser = (User) session.getAttribute("user");
+    if (currentUser == null) {
+        response.sendRedirect("../LoginServlet");
+        return;
+    }
+    if (currentUser.isAdmin()) {
+        response.sendRedirect("../AdminServlet?action=dashboard");
+        return;
+    }
+    List<Quiz> quizzes = (List<Quiz>) request.getAttribute("quizzes");
+    Map<Integer, Submission> userSubmissions = (Map<Integer, Submission>) request.getAttribute("userSubmissions");
+    List<Submission> recentSubmissions = (List<Submission>) request.getAttribute("recentSubmissions");
+    String success = (String) request.getAttribute("success");
+    String error = (String) request.getAttribute("error");
+%>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Examora</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="dashboard.jsp">
+                <i class="bi bi-journal-check me-2"></i>Examora
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="../ExamServlet?action=dashboard">
+                            <i class="bi bi-house me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="../ExamServlet?action=list">
+                            <i class="bi bi-journal-text me-1"></i>Quiz Tersedia
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="../ExamServlet?action=history">
+                            <i class="bi bi-clock-history me-1"></i>Riwayat
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="text-white me-3">
+                        <i class="bi bi-person-circle me-1"></i><%= currentUser.getName() %>
+                    </span>
+                    <a href="../LogoutServlet" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-box-arrow-left me-1"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-4">
+        <% if (success != null) { %>
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-2"></i><%= success %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <% } %>
+
+        <% if (error != null) { %>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle me-2"></i><%= error %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <% } %>
+
+        <!-- Welcome Banner -->
+        <div class="card bg-primary text-white mb-4">
+            <div class="card-body py-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-2">Selamat Datang, <%= currentUser.getName() %>!</h2>
+                        <p class="mb-0 opacity-75">Siap untuk memulai ujian? Pilih quiz yang tersedia di bawah ini.</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <i class="bi bi-mortarboard-fill" style="font-size: 4rem; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Quizzes -->
+        <h4 class="mb-3"><i class="bi bi-journal-text me-2"></i>Quiz Tersedia</h4>
+
+        <% if (quizzes != null && !quizzes.isEmpty()) { %>
+        <div class="row g-4 mb-4">
+            <% for (Quiz quiz : quizzes) {
+                Submission sub = userSubmissions != null ? userSubmissions.get(quiz.getId()) : null;
+                boolean hasSubmitted = sub != null && sub.isCompleted();
+            %>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 quiz-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0"><%= quiz.getTitle() %></h5>
+                            <% if (hasSubmitted) { %>
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Selesai</span>
+                            <% } else { %>
+                            <span class="badge bg-primary"><i class="bi bi-play-circle me-1"></i>Tersedia</span>
+                            <% } %>
+                        </div>
+                        <p class="card-text text-muted small mb-3">
+                            <%= quiz.getDescription() != null && quiz.getDescription().length() > 80 ?
+                                quiz.getDescription().substring(0, 80) + "..." : (quiz.getDescription() != null ? quiz.getDescription() : "Tidak ada deskripsi") %>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted small">
+                                <i class="bi bi-clock me-1"></i><%= quiz.getDuration() %> menit
+                            </span>
+                            <span class="text-muted small">
+                                <i class="bi bi-question-circle me-1"></i><%= quiz.getQuestionCount() %> soal
+                            </span>
+                        </div>
+                        <% if (hasSubmitted) { %>
+                        <div class="d-flex gap-2">
+                            <a href="../ExamServlet?action=result&submissionId=<%= sub.getId() %>"
+                               class="btn btn-outline-primary w-100">
+                                <i class="bi bi-eye me-1"></i>Lihat Hasil
+                            </a>
+                        </div>
+                        <div class="text-center mt-2">
+                            <strong>Nilai: <%= String.format("%.0f", sub.getScore()) %></strong>
+                        </div>
+                        <% } else { %>
+                        <a href="../ExamServlet?action=start&quizId=<%= quiz.getId() %>"
+                           class="btn btn-primary w-100"
+                           onclick="return confirm('Mulai mengerjakan quiz ini?')">
+                            <i class="bi bi-play-fill me-1"></i>Mulai Quiz
+                        </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+        </div>
+        <% } else { %>
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-journal-x display-1 text-muted mb-3 d-block"></i>
+                <h5 class="text-muted">Belum ada quiz tersedia</h5>
+                <p class="text-muted">Quiz akan muncul di sini setelah admin mempublish.</p>
+            </div>
+        </div>
+        <% } %>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-light py-3 mt-auto">
+        <div class="container text-center">
+            <span class="text-muted">&copy; 2024 Examora. All rights reserved.</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

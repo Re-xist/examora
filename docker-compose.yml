@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: examora-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: examora_db
+      MYSQL_USER: examora
+      MYSQL_PASSWORD: examorapass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - examora-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Tomcat Application Server
+  tomcat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: examora-tomcat
+    restart: unless-stopped
+    ports:
+      - "8888:8080"
+    environment:
+      - DB_URL=jdbc:mysql://mysql:3306/examora_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - DB_USERNAME=examora
+      - DB_PASSWORD=examorapass
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - examora-network
+
+volumes:
+  mysql_data:
+
+networks:
+  examora-network:
+    driver: bridge
