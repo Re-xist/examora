@@ -95,7 +95,8 @@ public class ExamServlet extends HttpServlet {
     private void listAvailableQuizzes(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, QuizService.ServiceException, SubmissionService.ServiceException {
         User user = (User) request.getSession().getAttribute("user");
-        List<Quiz> quizzes = quizService.getActiveQuizzes();
+        // Get quizzes filtered by user's tag
+        List<Quiz> quizzes = quizService.getActiveQuizzesByTag(user.getTag());
 
         Map<Integer, Submission> userSubmissions = new HashMap<>();
         for (Quiz quiz : quizzes) {
@@ -113,7 +114,8 @@ public class ExamServlet extends HttpServlet {
     private void showUserDashboard(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, QuizService.ServiceException, SubmissionService.ServiceException {
         User user = (User) request.getSession().getAttribute("user");
-        List<Quiz> quizzes = quizService.getActiveQuizzes();
+        // Get quizzes filtered by user's tag
+        List<Quiz> quizzes = quizService.getActiveQuizzesByTag(user.getTag());
 
         Map<Integer, Submission> userSubmissions = new HashMap<>();
         for (Quiz quiz : quizzes) {
